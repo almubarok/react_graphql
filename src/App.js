@@ -1,62 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 import Todo from 'components/Todo';
 import LoadingSvg from 'components/LoadingSvg';
-import { gql, useQuery, useMutation } from '@apollo/client';
-
-const GetTodo = gql`
-  query MyQuery {
-    todolist {
-      is_done
-      id
-      title
-    }
-  }
-`;
-
-const UpdateTodo = gql`
-  mutation MyMutation($id: Int!, $is_done: Boolean) {
-    update_todolist_by_pk(
-      pk_columns: { id: $id }
-      _set: { is_done: $is_done }
-    ) {
-      id
-    }
-  }
-`;
-
-const DeleteTodo = gql`
-  mutation MyMutation($id: Int!) {
-    delete_todolist_by_pk(id: $id) {
-      id
-    }
-  }
-`;
-
-const InsertTodo = gql`
-  mutation MyMutation($object: todolist_insert_input!) {
-    insert_todolist_one(object: $object) {
-      id
-    }
-  }
-`;
+import useUpdateTodo from 'hooks/useUpdateTodo';
+import useDeleteTodo from 'hooks/useDeleteTodo';
+import useInsertTodo from 'hooks/useInsertTodo';
+import useSubscribeTodo from 'hooks/useSubscribeTodo';
+import useGetTodo from 'hooks/useGetTodo';
 
 function TodoList() {
-  const { data, loading, error } = useQuery(GetTodo);
-  const [updateTodo, { loading: loadingUpdate }] = useMutation(UpdateTodo, {
-    refetchQueries: [GetTodo],
-  });
-  const [deleteTodo, { loading: loadinDelete }] = useMutation(DeleteTodo, {
-    refetchQueries: [GetTodo],
-  });
-  const [insertTodo, { loading: loadingInsert }] = useMutation(InsertTodo, {
-    refetchQueries: [GetTodo],
-  });
+  const { todolist, loading, error, subcribeTodo } = useGetTodo();
+  const { updateTodo, loadingUpdate } = useUpdateTodo();
+  const { deleteTodo, loadingDelete } = useDeleteTodo();
+  const { insertTodo, loadingInsert } = useInsertTodo();
+  // const { data, loading, error } = useSubscribeTodo();
+
+  useEffect(() => {
+    subcribeTodo();
+  }, []);
 
   // const [list, setList] = useState([]);
   const [title, setTitle] = useState('');
 
-  if (loading || loadingUpdate || loadinDelete || loadingInsert) {
+  if (loading || loadingUpdate || loadingDelete || loadingInsert) {
     return <LoadingSvg />;
   }
 
@@ -84,7 +50,7 @@ function TodoList() {
   };
 
   const onClickItem = (idx) => {
-    const item = data?.todolist.find((v) => v.id === idx);
+    const item = todolist.find((v) => v.id === idx);
     updateTodo({ variables: { id: idx, is_done: !item.is_done } });
   };
 
@@ -97,7 +63,7 @@ function TodoList() {
       <div className='container'>
         <h1 className='app-title'>todos</h1>
         <ul className='todo-list js-todo-list'>
-          {data?.todolist.map((v) => (
+          {todolist.map((v) => (
             <Todo
               key={v.id}
               id={v.id}
