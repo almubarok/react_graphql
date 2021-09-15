@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './App.css';
 import Todo from 'components/Todo';
 import LoadingSvg from 'components/LoadingSvg';
-import { gql, useQuery } from '@apollo/client';
+import { gql, useQuery, useMutation } from '@apollo/client';
 
 const GetTodo = gql`
   query MyQuery {
@@ -14,12 +14,49 @@ const GetTodo = gql`
   }
 `;
 
+const UpdateTodo = gql`
+  mutation MyMutation($id: Int!, $is_done: Boolean) {
+    update_todolist_by_pk(
+      pk_columns: { id: $id }
+      _set: { is_done: $is_done }
+    ) {
+      id
+    }
+  }
+`;
+
+const DeleteTodo = gql`
+  mutation MyMutation($id: Int!) {
+    delete_todolist_by_pk(id: $id) {
+      id
+    }
+  }
+`;
+
+const InsertTodo = gql`
+  mutation MyMutation($object: todolist_insert_input!) {
+    insert_todolist_one(object: $object) {
+      id
+    }
+  }
+`;
+
 function TodoList() {
   const { data, loading, error } = useQuery(GetTodo);
-  const [list, setList] = useState([]);
+  const [updateTodo, { loading: loadingUpdate }] = useMutation(UpdateTodo, {
+    refetchQueries: [GetTodo],
+  });
+  const [deleteTodo, { loading: loadinDelete }] = useMutation(DeleteTodo, {
+    refetchQueries: [GetTodo],
+  });
+  const [insertTodo, { loading: loadingInsert }] = useMutation(InsertTodo, {
+    refetchQueries: [GetTodo],
+  });
+
+  // const [list, setList] = useState([]);
   const [title, setTitle] = useState('');
 
-  if (loading) {
+  if (loading || loadingUpdate || loadinDelete || loadingInsert) {
     return <LoadingSvg />;
   }
 
@@ -35,19 +72,24 @@ function TodoList() {
 
   const onSubmitList = (e) => {
     e.preventDefault();
-    setList((prev) => [...prev, { checked: false, title }]);
+    insertTodo({
+      variables: {
+        object: {
+          title: title,
+          user_id: 1,
+        },
+      },
+    });
     setTitle('');
   };
 
   const onClickItem = (idx) => {
-    const newList = [...list];
-    newList[idx].checked = !newList[idx].checked;
-    setList(newList);
+    const item = data?.todolist.find((v) => v.id === idx);
+    updateTodo({ variables: { id: idx, is_done: !item.is_done } });
   };
 
   const onDeleteItem = (idx) => {
-    const newList = list.filter((_, i) => i != idx);
-    setList(newList);
+    deleteTodo({ variables: { id: idx } });
   };
 
   return (
@@ -55,12 +97,12 @@ function TodoList() {
       <div className='container'>
         <h1 className='app-title'>todos</h1>
         <ul className='todo-list js-todo-list'>
-          {data?.todolist.map((v, i) => (
+          {data?.todolist.map((v) => (
             <Todo
-              key={i}
-              id={i}
-              onClickItem={() => onClickItem(i)}
-              onDeleteItem={() => onDeleteItem(i)}
+              key={v.id}
+              id={v.id}
+              onClickItem={() => onClickItem(v.id)}
+              onDeleteItem={() => onDeleteItem(v.id)}
               title={v.title}
               checked={v.is_done}
             />
