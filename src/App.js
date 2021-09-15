@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './App.css';
 import Todo from 'components/Todo';
 import LoadingSvg from 'components/LoadingSvg';
-import { gql, useQuery, useMutation } from '@apollo/client';
+import { gql, useQuery, useMutation, useSubscription } from '@apollo/client';
 
 const GetTodo = gql`
   query MyQuery {
@@ -41,8 +41,20 @@ const InsertTodo = gql`
   }
 `;
 
+const SubscribeTodo = gql`
+  subscription MySubscription {
+    todolist {
+      id
+      is_done
+      title
+    }
+  }
+`;
+
 function TodoList() {
-  const { data, loading, error } = useQuery(GetTodo);
+  // const { data, loading, error } = useQuery(GetTodo);
+  const { data, loading, error } = useSubscription(SubscribeTodo);
+
   const [updateTodo, { loading: loadingUpdate }] = useMutation(UpdateTodo, {
     refetchQueries: [GetTodo],
   });
