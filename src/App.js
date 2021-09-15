@@ -1,10 +1,31 @@
 import { useState } from 'react';
 import './App.css';
 import Todo from 'components/Todo';
+import LoadingSvg from 'components/LoadingSvg';
+import { gql, useQuery } from '@apollo/client';
+
+const GetTodo = gql`
+  query MyQuery {
+    todolist {
+      is_done
+      id
+      title
+    }
+  }
+`;
 
 function TodoList() {
+  const { data, loading, error } = useQuery(GetTodo);
   const [list, setList] = useState([]);
   const [title, setTitle] = useState('');
+
+  if (loading) {
+    return <LoadingSvg />;
+  }
+
+  if (error) {
+    return error;
+  }
 
   const onChangeTitle = (e) => {
     if (e.target) {
@@ -34,14 +55,14 @@ function TodoList() {
       <div className='container'>
         <h1 className='app-title'>todos</h1>
         <ul className='todo-list js-todo-list'>
-          {list.map((v, i) => (
+          {data?.todolist.map((v, i) => (
             <Todo
               key={i}
               id={i}
               onClickItem={() => onClickItem(i)}
               onDeleteItem={() => onDeleteItem(i)}
               title={v.title}
-              checked={v.checked}
+              checked={v.is_done}
             />
           ))}
         </ul>
