@@ -62,7 +62,7 @@ function TodoList() {
               onClickItem={() => onClickItem(i)}
               onDeleteItem={() => onDeleteItem(i)}
               title={v.title}
-              checked={v.checked}
+              checked={v.is_done}
             />
           ))}
         </ul>
